@@ -1,0 +1,1276 @@
+{
+  "name": "SUPER AGENTE V2 (Multimodal + Debounce + Native Gemini)",
+  "nodes": [
+    {
+      "id": "c3a4fb2f-440e-41cc-9493-09741e6c0911",
+      "name": "Webhook Z-API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        400
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "options": {}
+      }
+    },
+    {
+      "id": "b6f1477e-e8e1-44d7-9748-985523b3efa1",
+      "name": "Filtro",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.1,
+      "position": [
+        -200,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.isGroup }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.body.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e55639db-76c8-42d4-9c87-9aa8e6a35b0c",
+      "name": "Dados Iniciais",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "senderName",
+              "value": "={{ $json.body.senderName }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "text",
+              "value": "={{ $json.body.text.message || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "audioUrl",
+              "value": "={{ $json.body.audio.audioUrl || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d5",
+              "name": "imageUrl",
+              "value": "={{ $json.body.image.imageUrl || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d6",
+              "name": "videoUrl",
+              "value": "={{ $json.body.video.videoUrl || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8d4fae6c-7482-43c5-ad17-eaf01fa4c2ba",
+      "name": "Tipo de Mensagem",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        200,
+        400
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.audioUrl }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.imageUrl }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.videoUrl }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Video"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": false
+        }
+      }
+    },
+    {
+      "id": "5f4f4149-4637-4961-a0fd-d42c02b3b762",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        100
+      ],
+      "parameters": {
+        "url": "={{ $json.audioUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "media_file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "938d405d-5eab-4fa5-83ee-6d55a0c149fc",
+      "name": "Analyze Audio",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        650,
+        100
+      ],
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-flash"
+        },
+        "text": "Transcreva o que é falado neste áudio em português. Retorne apenas a transcrição.",
+        "inputType": "binary",
+        "binaryPropertyName": "media_file",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Your googlePalmApi Credential"
+        }
+      }
+    },
+    {
+      "id": "e0f6eb76-93ef-4f89-9599-abb4b2493cb1",
+      "name": "Texto Audio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        850,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "mensagem_final",
+              "value": "={{ $json.text || $json.content || $json.output || $json.response || JSON.stringify($json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ff48e650-b776-45e2-aa65-1659a48a354e",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "media_file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "f76920e4-43e9-4968-b414-d79f0b546c9f",
+      "name": "Analyze Image",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-flash"
+        },
+        "text": "Descreva com muitos detalhes o que você vê nesta imagem. Se tiver texto, transcreva.",
+        "inputType": "binary",
+        "binaryPropertyName": "media_file",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Your googlePalmApi Credential"
+        }
+      }
+    },
+    {
+      "id": "dd313be7-ffcb-4b80-b79d-37966afadecb",
+      "name": "Texto Image",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "mensagem_final",
+              "value": "=(IMAGEM RECEBIDA) {{ $json.text || $json.content || $json.output || $json.response || JSON.stringify($json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b8cf5115-0461-4c7f-af41-21fe597e2ba2",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        500
+      ],
+      "parameters": {
+        "url": "={{ $json.videoUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "media_file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "3f649430-ab1f-4269-b3e1-641bd257960c",
+      "name": "Analyze Video",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        650,
+        500
+      ],
+      "parameters": {
+        "resource": "video",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-flash"
+        },
+        "text": "Descreva com detalhes o que acontece neste vídeo e transcreva as falas que conseguir ouvir.",
+        "inputType": "binary",
+        "binaryPropertyName": "media_file",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Your googlePalmApi Credential"
+        }
+      }
+    },
+    {
+      "id": "43850df7-04c3-4291-8f98-82f75ace6e5f",
+      "name": "Texto Video",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        850,
+        500
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "mensagem_final",
+              "value": "=(VÍDEO RECEBIDO) {{ $json.text || $json.content || $json.output || $json.response || JSON.stringify($json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f7846489-68cb-4f02-bcae-7281a6eb3972",
+      "name": "Texto Direto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        650,
+        700
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "t1",
+              "name": "mensagem_final",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6ac4025a-0bef-44aa-b3b9-771d44893335",
+      "name": "Redis Push",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        400
+      ],
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('Dados Iniciais').item.json.phone }}",
+        "messageData": "={{ $json.mensagem_final }}",
+        "tail": true
+      },
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Your redis Credential"
+        }
+      }
+    },
+    {
+      "id": "19cb5336-095e-4a06-91ca-95d44cd15b21",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1500,
+        400
+      ],
+      "parameters": {
+        "amount": 10
+      },
+      "webhookId": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": "663d2acd-c434-40bd-b920-3ce986331ed4",
+      "name": "Redis Length Before",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        300
+      ],
+      "parameters": {
+        "operation": "llen",
+        "list": "={{ $('Dados Iniciais').item.json.phone }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Your redis Credential"
+        }
+      }
+    },
+    {
+      "id": "fdc5bf81-4587-41da-898d-67323181bc23",
+      "name": "Redis Length After",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        500
+      ],
+      "parameters": {
+        "operation": "llen",
+        "list": "={{ $('Dados Iniciais').item.json.phone }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Your redis Credential"
+        }
+      }
+    },
+    {
+      "id": "13daef64-5fed-4786-afa3-5f34b971a107",
+      "name": "Fila Estabilizou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1900,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Redis Length Before').item.json.length }}",
+              "rightValue": "={{ $('Redis Length After').item.json.length }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7885c1ff-56c4-422e-9bca-85ee1f46ab63",
+      "name": "Buscar Lista",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        300
+      ],
+      "parameters": {
+        "operation": "get",
+        "propertyName": "Lista",
+        "key": "={{ $('Dados Iniciais').item.json.phone }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Your redis Credential"
+        }
+      }
+    },
+    {
+      "id": "a01740a1-6b0c-4468-97c1-e11f518f230b",
+      "name": "Limpar Fila",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        300
+      ],
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Dados Iniciais').item.json.phone }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Your redis Credential"
+        }
+      }
+    },
+    {
+      "id": "abaff08b-894e-40db-a1dd-6e63fab5c784",
+      "name": "Juntar Mensagens",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2500,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "j1",
+              "name": "mensagem_unificada",
+              "value": "={{ $json.Lista.join('\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fce68384-306b-4ff5-a322-93b4e057581e",
+      "name": "Encontrar Cliente",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        300
+      ],
+      "parameters": {
+        "operation": "get",
+        "tableId": "Leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "lead_id",
+              "keyValue": "={{ $('Dados Iniciais').item.json.phone }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASEAPI_CREDENTIAL_ID",
+          "name": "Your supabaseApi Credential"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "253a06dd-da82-43bf-a2c8-1059ab72125f",
+      "name": "Cliente Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        2900,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "s1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f795ae74-a504-4c90-8f61-e12f6ddc25aa",
+      "name": "Criar Cliente",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        400
+      ],
+      "parameters": {
+        "tableId": "Leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lead_nome",
+              "fieldValue": "={{ $('Dados Iniciais').item.json.senderName }}"
+            },
+            {
+              "fieldId": "lead_id",
+              "fieldValue": "={{ $('Dados Iniciais').item.json.phone }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASEAPI_CREDENTIAL_ID",
+          "name": "Your supabaseApi Credential"
+        }
+      }
+    },
+    {
+      "id": "cd185fe3-bd86-4ffa-81d0-076b60acea12",
+      "name": "Merge Cliente",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3300,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "52ff0c8d-2481-4240-b84c-b13437513a82",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        3500,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Juntar Mensagens').item.json.mensagem_unificada }}",
+        "options": {
+          "systemMessage": "=Hoje é {{ $now.setZone('America/Belem').toFormat('dd/MM/yyyy HH:mm') }}. Você é a Assistente Virtual da Empresa Modelo.\nSua resposta deve ser humanizada, não usar markdown pesados. Seja natural."
+        }
+      }
+    },
+    {
+      "id": "c2c0131d-368e-4f90-92b3-4ffd53680d43",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        3400,
+        500
+      ],
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Your googlePalmApi Credential"
+        }
+      }
+    },
+    {
+      "id": "9a496326-cf97-4735-9017-a72eae0e63f4",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3600,
+        500
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Dados Iniciais').item.json.phone }}",
+        "contextWindowLength": 20
+      },
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Your postgres Credential"
+        }
+      }
+    },
+    {
+      "id": "33d5dafa-66ba-441e-89ec-3c334168334d",
+      "name": "Z-API Enviar Mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3800,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/YOUR_ZAPI_INSTANCE_ID/token/YOUR_ZAPI_TOKEN/send-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('Dados Iniciais').item.json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.output || $json.text || $json.response || 'Erro: Agente retornou vazio.' }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Your httpHeaderAuth Credential"
+        }
+      }
+    },
+    {
+      "id": "bbfe9f07-99b3-4ead-8cef-b721f6011f7c",
+      "name": "Nota Z-API Entrada",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -450,
+        250
+      ],
+      "parameters": {
+        "content": "## 1. Z-API (Entrada)\nConfigure o **Webhook Z-API**.\n\nCada cliente precisa do seu próprio link de Webhook configurado na instância do Z-API para receber as mensagens aqui.",
+        "width": 300,
+        "height": 120,
+        "color": 6
+      }
+    },
+    {
+      "id": "8d8e3047-492f-4c7a-8156-edeec2077ef1",
+      "name": "Nota Gemini",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        50
+      ],
+      "parameters": {
+        "content": "## 2. Inteligência Artificial\n**Google Gemini**\n\nA chave de API do Gemini geralmente é a da sua Agência. Apenas verifique se a credencial (Google PaLM) está conectada nos nós de **Analyze** e no **Chat Model**.",
+        "width": 350,
+        "height": 150,
+        "color": 6
+      }
+    },
+    {
+      "id": "f584f4e7-259b-40f1-b036-c7ba6404bf34",
+      "name": "Nota Redis",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        200
+      ],
+      "parameters": {
+        "content": "## 3. Redis (Fila / Debounce)\n**Banco de Dados Redis**\n\nCertifique-se de que a credencial do Redis está selecionada em todos os nós (Push, Length Before, Length After, Buscar Lista e Limpar Fila). O Redis pode ser o mesmo para todos os clientes, pois a fila é separada pelo número do usuário.",
+        "width": 350,
+        "height": 160,
+        "color": 6
+      }
+    },
+    {
+      "id": "806a841a-ae1a-40b4-a4e0-e3ee85c05899",
+      "name": "Nota Supabase e Postgres",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        100
+      ],
+      "parameters": {
+        "content": "## 4. CRM e Memória\n**Supabase & Postgres**\n\n- **Supabase:** Selecione a credencial e a Tabela correta (ex: Leads) para salvar os contatos.\n- **Postgres:** Selecione a credencial. A memória usa o Postgres para lembrar do contexto de cada usuário.",
+        "width": 380,
+        "height": 160,
+        "color": 6
+      }
+    },
+    {
+      "id": "b665b71a-cabb-4810-8290-fb63668c0bc3",
+      "name": "Nota Z-API Saida",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        150
+      ],
+      "parameters": {
+        "content": "## 5. Z-API (Saída)\n**Z-API Enviar Mensagem**\n\nNeste nó de HTTP Request, atualize a **URL** com a `INSTANCE_ID` e o `TOKEN` específicos do cliente para que ele consiga enviar as respostas. Verifique a credencial de autenticação.",
+        "width": 350,
+        "height": 160,
+        "color": 6
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Z-API": {
+      "main": [
+        [
+          {
+            "node": "Filtro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro": {
+      "main": [
+        [
+          {
+            "node": "Dados Iniciais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dados Iniciais": {
+      "main": [
+        [
+          {
+            "node": "Tipo de Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Texto Direto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Analyze Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Audio": {
+      "main": [
+        [
+          {
+            "node": "Texto Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Analyze Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Image": {
+      "main": [
+        [
+          {
+            "node": "Texto Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Analyze Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Video": {
+      "main": [
+        [
+          {
+            "node": "Texto Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto Audio": {
+      "main": [
+        [
+          {
+            "node": "Redis Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto Image": {
+      "main": [
+        [
+          {
+            "node": "Redis Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto Video": {
+      "main": [
+        [
+          {
+            "node": "Redis Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto Direto": {
+      "main": [
+        [
+          {
+            "node": "Redis Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Push": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Redis Length Before",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Length Before": {
+      "main": [
+        [
+          {
+            "node": "Redis Length After",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Length After": {
+      "main": [
+        [
+          {
+            "node": "Fila Estabilizou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila Estabilizou?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lista": {
+      "main": [
+        [
+          {
+            "node": "Limpar Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar Fila": {
+      "main": [
+        [
+          {
+            "node": "Juntar Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar Mensagens": {
+      "main": [
+        [
+          {
+            "node": "Encontrar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encontrar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Cliente Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Existe?": {
+      "main": [
+        [
+          {
+            "node": "Merge Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Merge Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Cliente": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Z-API Enviar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,437 @@
+{
+  "name": "Disparador WhatsApp (Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "limite",
+              "name": "limite_disparos",
+              "value": "3",
+              "type": "string"
+            },
+            {
+              "id": "hi",
+              "name": "horario_inicial",
+              "value": 9,
+              "type": "number"
+            },
+            {
+              "id": "hf",
+              "name": "horario_final",
+              "value": 17,
+              "type": "number"
+            },
+            {
+              "id": "dmin",
+              "name": "delay_minimo",
+              "value": "5",
+              "type": "string"
+            },
+            {
+              "id": "dmax",
+              "name": "delay_maximo",
+              "value": "10",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        200,
+        0
+      ],
+      "name": "Infos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $now.format('HH').toNumber() }}",
+              "rightValue": "={{ $json.horario_inicial }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $now.format('HH').toNumber() }}",
+              "rightValue": "={{ $json.horario_final }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "name": "Validação de Horário"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "contatos_whatsapp",
+        "returnAll": false,
+        "limit": "={{ $('Infos').item.json.limite_disparos }}",
+        "filterType": "manual",
+        "matchType": "anyFilter",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Aguardando"
+            },
+            {
+              "keyName": "status",
+              "condition": "is",
+              "keyValue": "null"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        620,
+        -20
+      ],
+      "name": "Pegar Contatos (Supabase)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        840,
+        -20
+      ],
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "let telefone = $input.first().json.telefone || '';\ntelefone = telefone.toString().replace(/\\D/g, '');\nif (telefone.startsWith('55')) telefone = telefone.substring(2);\nif (telefone.length < 10) throw new Error('Telefone inválido');\nconst ddd = parseInt(telefone.substring(0, 2));\nlet numero = telefone.substring(2);\nif (numero.length === 9 && numero.startsWith('9')) numero = numero.substring(1);\nlet telefoneFormatado = (ddd <= 27) ? `559${ddd.toString().padStart(2, '0')}${numero}` : `55${ddd.toString().padStart(2, '0')}${numero}`;\nreturn [{ json: { telefoneFormatado: telefoneFormatado } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        -20
+      ],
+      "name": "Formatador"
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "instanceName": "Suporte",
+        "numbers": "={{ $json.telefoneFormatado }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -20
+      ],
+      "name": "Verificar Número"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.data[0].exists }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        -20
+      ],
+      "name": "Existe?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "contatos_whatsapp",
+        "columns": "status",
+        "matchColumns": "id",
+        "updateFields": {
+          "status": "Inválido"
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        200
+      ],
+      "name": "Contato Inválido"
+    },
+    {
+      "parameters": {
+        "jsCode": "const min = Number($('Infos').first().json.delay_minimo);\nconst max = Number($('Infos').first().json.delay_maximo);\nconst delayAleatorio = Math.floor(Math.random() * (max - min + 1)) + min;\nreturn [{ json: { delay_gerado: delayAleatorio } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        -180
+      ],
+      "name": "Gerador de Delay"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delay_gerado }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1940,
+        -180
+      ],
+      "name": "Delay"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "Suporte",
+        "remoteJid": "={{ $('Formatador').item.json.telefoneFormatado }}",
+        "messageText": "=Olá, tudo bem? Aqui é a *Equipe Comercial* e ajudo empresas do segmento de _{{ $('Loop Over Items').item.json.nicho }}_ a atraírem mais orçamentos através do Instagram e Facebook. Consegue me disponibilizar *10 minutinhos* nesta semana para eu te mostrar na prática como funciona?",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        -180
+      ],
+      "name": "Enviar texto"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "contatos_whatsapp",
+        "columns": "status",
+        "matchColumns": "id",
+        "updateFields": {
+          "status": "Enviado"
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        -180
+      ],
+      "name": "Atualizar Status"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Infos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Infos": {
+      "main": [
+        [
+          {
+            "node": "Validação de Horário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validação de Horário": {
+      "main": [
+        [
+          {
+            "node": "Pegar Contatos (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pegar Contatos (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Formatador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatador": {
+      "main": [
+        [
+          {
+            "node": "Verificar Número",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Número": {
+      "main": [
+        [
+          {
+            "node": "Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existe?": {
+      "main": [
+        [
+          {
+            "node": "Gerador de Delay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contato Inválido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contato Inválido": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerador de Delay": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar texto": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Status": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
